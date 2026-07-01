@@ -297,18 +297,31 @@
     const setA = shuffle([match, ...othersA]);
     const setB = shuffle([match, ...othersB]);
 
-    buildCard('card-a', setA, match);
-    buildCard('card-b', setB, match);
+    // Wait for the browser to finish laying out the screen before measuring
+    // the cards. On iOS Safari the cards can report width 0 if we measure too
+    // early, which collapses every symbol into an invisible dot.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        buildCard('card-a', setA, match);
+        buildCard('card-b', setB, match);
 
-    roundStart = performance.now();
-    startTimer();
+        roundStart = performance.now();
+        startTimer();
+      });
+    });
   }
 
   function buildCard(cardId, symbols, matchSym) {
     const card = document.getElementById(cardId);
     card.innerHTML = '';
 
-    const cardSize = card.getBoundingClientRect().width || 210;
+    // Measure the card. If layout still isn't ready (width unusably small),
+    // fall back to reading the CSS --card-size variable instead of a guess.
+    let cardSize = card.getBoundingClientRect().width;
+    if (!cardSize || cardSize < 40) {
+      const cssSize = getComputedStyle(card).getPropertyValue('--card-size');
+      cardSize = parseInt(cssSize) || 210;
+    }
     const cx = cardSize / 2;
     const cy = cardSize / 2;
     const R = cardSize * 0.37;
